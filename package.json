@@ -1,0 +1,30 @@
+{
+  "name": "linux-package-manager",
+  "version": "0.0.1",
+  "description": "Linux package managers Wrapper",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified yet\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nodejs-linux-server-management/linux-package-manager.git"
+  },
+  "keywords": [
+    "linux",
+    "package",
+    "manager"
+  ],
+  "author": "Alexandre Picavet",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/nodejs-linux-server-management/linux-package-manager/issues"
+  },
+  "homepage": "https://github.com/nodejs-linux-server-management/linux-package-manager#readme",
+  "devDependencies": {
+    "@types/node": "^12.0.12",
+    "typescript": "^3.5.2"
+  }
+}

@@ -111,7 +111,7 @@ describe('#PackageManager Index (Promises)', function () {
 });
 
 describe('#PackageManager Index (Callbacks)', function () {
-	this.timeout(10000);
+	this.timeout(20000);
 	if (platform() === 'linux') {
 		it('#PackageManagerName', (done) => {
 			if (index.packageManager().packageManagerName === '') {

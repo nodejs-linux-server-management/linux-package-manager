@@ -112,7 +112,7 @@ describe('#PackageManager Class (Promises)', function () {
 });
 
 describe('#PackageManager Class (Callbacks)', function () {
-	this.timeout(10000);
+	this.timeout(20000);
 	if (platform() === 'linux') {
 		it('#findPackageManager', (done) => {
 			var pm = new PackageManager();

@@ -1,0 +1,473 @@
+// import { ShellCommand, ShellCommandEvents } from "./ShellCommand";
+// import { BooleanResult } from "../Types/Result";
+// import { commandExists } from "../Informations/system";
+import { platform } from "os";
+import { EventEmitter } from "events";
+import { commandExists } from "linux-command-exists";
+
+export type packageManagerInformations = {
+	name: string;
+	commands: {
+		update: string;
+		upgrade: string;
+		install: string;
+		uninstall: string;
+		exists: string;
+		upgradable: string;
+		isInstalled: string;
+		search: string;
+	}
+}
+
+export class PackageManager {
+
+	packageManagerName: string;
+	error: Error | null;
+	ready: boolean;
+	events: ShellCommandEvents;
+	static knownPackageManagers: { [key: string]: packageManagerInformations } = {
+		'pacman': {
+			name: "pacman",
+			commands: {
+				update: "sudo pacman -Syy",
+				upgradable: "pacman -Qu | tr -d '\\-\\>' | tr -s ' '",
+				upgrade: "sudo pacman -Su --noconfirm",
+				exists: "pacman -Ssq ^'!?!'$",
+				isInstalled: "pacman -Qs ^'!?!'$",
+				install: "sudo pacman -S '!?!' --noconfirm",
+				uninstall: "sudo pacman -R '!?!' --noconfirm",
+				search: "pacman -Ssq '!?!'"
+			}
+		},
+		'apt': {
+			name: "apt",
+			commands: {
+				update: "sudo apt update",
+				upgradable: "apt list --upgradable | awk -F ' ' '{print $1 \" \" $6 \" \" $2}' | tr -d ']'",
+				upgrade: "sudo apt upgrade -y",
+				exists: "apt search ^'!?!'$",
+				isInstalled: "dpkg -s '!?!'",
+				install: "sudo apt install '!?!' -y",
+				uninstall: "sudo apt uninstall '!?!' -y",
+				search: "apt search '!?!'"
+			}
+		}
+	};
+
+	constructor() {
+		if (platform() !== 'linux') {
+			throw Error("This module only runs on linux");
+		}
+		this.packageManagerName = "unknown";
+		this.error = null;
+		this.ready = false;
+		this.events = new EventEmitter();
+	}
+
+	public findPackageManager(callback: (found: BooleanResult) => void) {
+		var kpms = Object.keys(PackageManager.knownPackageManagers);
+		var p = [];
+		for (let i = 0; i < kpms.length; i++) {
+			if (kpms[i] !== 'unknown') {
+				p.push(new Promise((resolve, reject) => {
+					commandExists(kpms[i]).then((exists)=>{
+						resolve(exists === true);
+					}).catch((e)=>{
+						reject(e);
+					});
+				}));
+			}
+		}
+		Promise.all(p).then((results) => {
+			for (let i = 0; i < results.length; i++) {
+				let result = <BooleanResult>results[i];
+				if (result.error !== null) {
+					this.error = result.error;
+					this.ready = true;
+					this.packageManagerName = "unknown";
+					callback({ error: this.error, data: this.ok() });
+					return;
+				} else if (result.data === true) {
+					this.error = null;
+					this.ready = true;
+					this.packageManagerName = kpms[i];
+					callback({ error: this.error, data: this.ok() });
+					return;
+				} else {
+
+				}
+			}
+			this.error = null;
+			this.ready = true;
+			this.packageManagerName = "unknown";
+			callback({ error: this.error, data: this.ok() });
+		}).catch((error) => {
+			callback({ error: error, data: false });
+		});
+	}
+
+	public updateDatabase(callback: (updated: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				var update = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.update, []);
+				update.execute(() => {
+					callback({ error: update.error, data: update.error === null });
+				});
+				update.events.on('pid', (pid) => {
+					this.events.emit('pid', pid);
+				}).on('stdout', (stdout) => {
+					this.events.emit('stdout', stdout);
+				}).on('stderr', (stderr) => {
+					this.events.emit('stderr', stderr);
+				}).on('exit', (code) => {
+					this.events.emit('exit', code)
+				}).on('error', (error) => {
+					this.events.emit('error', error);
+				});
+			} else {
+				callback({ error: Error("Impossible to update packages database without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.updateDatabase(callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public listUpgradablePackages(callback: (upgradablePackages: UpgradablePackagesResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				this.updateDatabase((updated) => {
+					if (updated.error === null) {
+						var upgradable = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.upgradable, []);
+						upgradable.events.on('pid', (pid) => {
+							this.events.emit('pid', pid);
+						}).on('stdout', (stdout) => {
+							this.events.emit('stdout', stdout);
+						}).on('stderr', (stderr) => {
+							this.events.emit('stderr', stderr);
+						}).on('exit', (code) => {
+							this.events.emit('exit', code)
+						}).on('error', (error) => {
+							this.events.emit('error', error);
+						});
+						upgradable.execute((success) => {
+							if (success) {
+								let packages: UpgradablePackagesResult = { error: null, data: {} };
+								let buf = upgradable.stdout.split('\n');
+								for (let i = 0; i < buf.length; i++) {
+									let packageInformations: string[] = buf[i].split(' ');
+									let p: UpgradablePackage = {
+										name: packageInformations[0],
+										currentVersion: packageInformations[1],
+										lastVersion: packageInformations[2]
+									};
+									packages.data[p.name] = p;
+								}
+								callback(packages);
+							} else {
+								callback({ error: upgradable.error, data: {} });
+							}
+						});
+					} else {
+						callback({ error: updated.error, data: {} });
+					}
+				});
+			} else {
+				callback({ error: Error("Impossible to list upgradable packages without knowing the package manager used"), data: {} });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.listUpgradablePackages(callback);
+				} else {
+					callback({ error: found.error, data: {} });
+				}
+			});
+		}
+	}
+
+	public upgradePackages(callback: (upgraded: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				var upgrade = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.upgrade, []);
+				upgrade.events.on('pid', (pid) => {
+					this.events.emit('pid', pid);
+				}).on('stdout', (stdout) => {
+					this.events.emit('stdout', stdout);
+				}).on('stderr', (stderr) => {
+					this.events.emit('stderr', stderr);
+				}).on('exit', (code) => {
+					this.events.emit('exit', code)
+				}).on('error', (error) => {
+					this.events.emit('error', error);
+				});
+				this.updateDatabase((updated) => {
+					if (updated.error === null) {
+						upgrade.execute((success) => {
+							if (success === true) {
+								callback({ error: null, data: true });
+							} else {
+								callback({ error: upgrade.error, data: false });
+							}
+						});
+					} else {
+						callback({ error: updated.error, data: false });
+					}
+				})
+
+			} else {
+				callback({ error: Error("Impossible to upgrade packages without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.upgradePackages(callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public doesPackageExists(packageName: string, callback: (exists: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				var exists = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.exists, [packageName]);
+				this.updateDatabase((success) => {
+					if (success.error === null) {
+						exists.execute((success) => {
+							if (success) {
+								callback({ error: null, data: true });
+							} else {
+								if (exists.exitStatus === 1) {
+									callback({ error: null, data: false });
+								} else {
+									callback({ error: exists.error, data: false });
+								}
+							}
+						})
+					} else {
+						callback(success);
+					}
+				});
+			} else {
+				callback({ error: Error("Impossible to check if a package exists without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.doesPackageExists(packageName, callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public isPackageInstalled(packageName: string, callback: (installed: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				var installed = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.isInstalled, [packageName]);
+				installed.execute((success) => {
+					if (success) {
+						callback({ error: null, data: true });
+					} else {
+						if (installed.exitStatus === 1) {
+							callback({ error: null, data: false });
+						} else {
+							callback({ error: installed.error, data: false });
+						}
+					}
+				})
+			} else {
+				callback({ error: Error("Impossible to check if a package is installed without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.isPackageInstalled(packageName, callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public installPackage(packageName: string | string[], callback: (installed: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				let packages: string[];
+				let command: string = PackageManager.knownPackageManagers[this.packageManagerName].commands.install;
+				if (typeof packageName === 'string') {
+					packages = [packageName];
+				} else {
+					packages = packageName;
+					command = command.replace(/'\!\?\!'/, new Array(packageName.length).fill("'!?!'").join(' '));
+				}
+				this.updateDatabase((updated) => {
+					if (updated.error === null) {
+						var install = new ShellCommand(command, packages);
+						install.events.on('pid', (pid) => {
+							this.events.emit('pid', pid);
+						}).on('stdout', (stdout) => {
+							this.events.emit('stdout', stdout);
+						}).on('stderr', (stderr) => {
+							this.events.emit('stderr', stderr);
+						}).on('exit', (code) => {
+							this.events.emit('exit', code)
+						}).on('error', (error) => {
+							this.events.emit('error', error);
+						});
+						install.execute((success) => {
+							if (success) {
+								callback({ error: null, data: true });
+							} else {
+								if (install.exitStatus === 1) {
+									callback({ error: null, data: false });
+								} else {
+									callback({ error: install.error, data: false });
+								}
+							}
+						});
+					} else {
+						callback(updated);
+					}
+				})
+			} else {
+				callback({ error: Error("Impossible to install a package without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.installPackage(packageName, callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public uninstallPackage(packageName: string | string[], callback: (uninstalled: BooleanResult) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				let packages: string[];
+				let command: string = PackageManager.knownPackageManagers[this.packageManagerName].commands.uninstall;
+				if (typeof packageName === 'string') {
+					packages = [packageName];
+				} else {
+					packages = packageName;
+					command = command.replace(/'\!\?\!'/, new Array(packageName.length).fill("'!?!'").join(' '));
+				}
+				var uninstall = new ShellCommand(command, packages);
+				uninstall.events.on('pid', (pid) => {
+					this.events.emit('pid', pid);
+				}).on('stdout', (stdout) => {
+					this.events.emit('stdout', stdout);
+				}).on('stderr', (stderr) => {
+					this.events.emit('stderr', stderr);
+				}).on('exit', (code) => {
+					this.events.emit('exit', code)
+				}).on('error', (error) => {
+					this.events.emit('error', error);
+				});
+				uninstall.execute((success) => {
+					if (success) {
+						callback({ error: null, data: true });
+					} else {
+						if (uninstall.exitStatus === 1) {
+							callback({ error: null, data: false });
+						} else {
+							callback({ error: uninstall.error, data: false });
+						}
+					}
+				});
+			} else {
+				callback({ error: Error("Impossible to uninstall a package without knowing the package manager used"), data: false });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.uninstallPackage(packageName, callback);
+				} else {
+					callback(found);
+				}
+			});
+		}
+	}
+
+	public searchPackage(packageName: string, callback: (packages: Packages) => void) {
+		if (this.ok()) {
+			if (this.known()) {
+				var search = new ShellCommand(PackageManager.knownPackageManagers[this.packageManagerName].commands.search, [packageName]);
+				search.events.on('pid', (pid) => {
+					this.events.emit('pid', pid);
+				}).on('stdout', (stdout) => {
+					this.events.emit('stdout', stdout);
+				}).on('stderr', (stderr) => {
+					this.events.emit('stderr', stderr);
+				}).on('exit', (code) => {
+					this.events.emit('exit', code)
+				}).on('error', (error) => {
+					this.events.emit('error', error);
+				});
+				search.execute((success) => {
+					if (success) {
+						callback({ error: null, data: search.stdout.split('\n') });
+					} else {
+						if (search.exitStatus === 1) {
+							callback({ error: null, data: [] });
+						} else {
+							callback({ error: search.error, data: [] });
+						}
+					}
+				});
+			} else {
+				callback({ error: Error("Impossible to search for packages without knowing the package manager used"), data: [] });
+			}
+		} else {
+			this.findPackageManager((found) => {
+				if (found.error === null) {
+					this.searchPackage(packageName, callback);
+				} else {
+					callback({ error: found.error, data: [] });
+				}
+			});
+		}
+	}
+
+	public ok(): boolean {
+		return this.ready && this.error === null;
+	}
+
+	public known(): boolean {
+		return this.ok() && this.packageManagerName !== "unknown";
+	}
+}
+
+export type PackageManagerResult = {
+	error: Error | null;
+	data: PackageManager;
+}
+
+export type UpgradablePackage = {
+	name: string;
+	currentVersion: string;
+	lastVersion: string;
+}
+
+export type UpgradablePackagesResult = {
+	error: Error | null;
+	data: {
+		[upgradablePackageName: string]: UpgradablePackage
+	};
+}
+
+export type Packages = {
+	error: Error | null;
+	data: string[];
+}

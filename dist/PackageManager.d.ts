@@ -20,25 +20,28 @@ export declare class PackageManager {
     static knownPackageManagers: {
         [key: string]: packageManagerInformations;
     };
+    /**
+     * @throws
+     */
     constructor();
     findPackageManager(): Promise<void>;
-    findPackageManager(callback: () => void): void;
+    findPackageManager(callback: (error: Error | null) => void): void;
     updateDatabase(): Promise<void>;
-    updateDatabase(callback: () => void): void;
+    updateDatabase(callback: (error: Error | null) => void): void;
     listUpgradablePackages(): Promise<UpgradablePackage[]>;
-    listUpgradablePackages(callback: (upgradablePackages: UpgradablePackage[]) => void): void;
+    listUpgradablePackages(callback: (error: Error | null, upgradablePackages: UpgradablePackage[]) => void): void;
     upgradePackages(): Promise<void>;
-    upgradePackages(callback: () => void): void;
+    upgradePackages(callback: (error: Error | null) => void): void;
     doesPackageExists(packageName: string): Promise<boolean>;
-    doesPackageExists(packageName: string, callback: (exists: boolean) => void): void;
+    doesPackageExists(packageName: string, callback: (error: Error | null, exists: boolean) => void): void;
     isPackageInstalled(packageName: string): Promise<boolean>;
-    isPackageInstalled(packageName: string, callback: (installed: boolean) => void): void;
+    isPackageInstalled(packageName: string, callback: (error: Error | null, installed: boolean) => void): void;
     installPackage(packageName: string | string[]): Promise<void>;
-    installPackage(packageName: string | string[], callback: () => void): void;
+    installPackage(packageName: string | string[], callback: (error: Error | null) => void): void;
     uninstallPackage(packageName: string | string[]): Promise<void>;
-    uninstallPackage(packageName: string | string[], callback: () => void): void;
+    uninstallPackage(packageName: string | string[], callback: (error: Error | null) => void): void;
     searchPackage(packageName: string): Promise<string[]>;
-    searchPackage(packageName: string, callback: (packages: string[]) => void): void;
+    searchPackage(packageName: string, callback: (error: Error | null, packages: string[]) => void): void;
     ok(): boolean;
     known(): boolean;
 }

@@ -115,119 +115,119 @@ describe('#PackageManager Index (Callbacks)', function () {
 	if (platform() === 'linux') {
 		it('#PackageManagerName', (done) => {
 			if (index.packageManager().packageManagerName === '') {
-				try {
-					index.packageManagerName((name) => {
+				index.packageManagerName((error, name) => {
+					if (error) {
+						done(Error(`Shouldn't fail\n${error}`));
+					} else {
 						if (name === '') {
 							done(Error('The package manager name shouldn\'t be empty'));
 						} else {
 							done();
 						}
-					});
-				} catch (e) {
-					done(Error(`Shouldn't fail\n${e}`));
-				}
+					}
+				});
 			} else {
 				done(Error('The package manager name should be empty after the object construction'));
 			}
 		});
 		it('#UpdateDatabase', (done) => {
-			try {
-				index.updateDatabase(() => {
+			index.updateDatabase((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#ListUpgradablePackages', (done) => {
-			try {
-				index.listUpgradablePackages(() => {
+			index.listUpgradablePackages((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#UpgradePackages', (done) => {
-			try {
-				index.upgradePackages(() => {
+			index.upgradePackages((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#doesPackageExists', (done) => {
-			try {
-				index.doesPackageExists('bash', (exists) => {
+			index.doesPackageExists('bash', (error, exists) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					if (exists === true) {
-						try {
-							index.doesPackageExists('fndejidgnbfudbgfeuyovbu', (exists) => {
+						index.doesPackageExists('fndejidgnbfudbgfeuyovbu', (error, exists) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
 								if (exists === false) {
 									done();
 								} else {
 									done(Error('The package "fndejidgnbfudbgfeuyovbu" shouldn\'t exists'));
 								}
-							});
-						} catch (e) {
-							done(Error(`Shouldn't fail\n${e}`));
-						}
+							}
+						});
 					} else {
 						done(Error('The package "bash" should exists'));
 					}
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#isPackageInstalled', (done) => {
-			try {
-				index.isPackageInstalled('bash', (installed) => {
+			index.isPackageInstalled('bash', (error, installed) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					if (installed === true) {
-						try {
-							index.isPackageInstalled('fndejidgnbfudbgfeuyovbu', (installed) => {
+						index.isPackageInstalled('fndejidgnbfudbgfeuyovbu', (error, installed) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
 								if (installed === false) {
 									done();
 								} else {
 									done(Error('The package "fndejidgnbfudbgfeuyovbu" shouldn\'t be installed'));
 								}
-							});
-						} catch (e) {
-							done(Error(`Shouldn't fail\n${e}`));
-						}
+							}
+						});
 					} else {
 						done(Error('The package "bash" should be installed'));
 					}
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#(un)installPackage', (done) => {
 			var packageName = 'tcsh';
-			try{
-				index.isPackageInstalled(packageName, (installed) => {
+			index.isPackageInstalled(packageName, (error, installed) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					if (installed === false) {
-						try {
-							index.installPackage(packageName, () => {
-								try {
-									index.uninstallPackage(packageName, () => {
+						index.installPackage(packageName, (error) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
+								index.uninstallPackage(packageName, (error) => {
+									if (error) {
+										done(Error(`Shouldn't fail\n${error}\n\nThe package ${packageName} hasn't been uninstalled, you'll have to uninstall it manually.`));
+									} else {
 										done();
-									});
-								} catch (e) {
-									done(Error(`Shouldn't fail\n${e}\n\nThe package ${packageName} hasn't been uninstalled, you'll have to uninstall it manually.`));
-								}
-							});
-						} catch (e) {
-							done(Error(`Shouldn't fail\n${e}`));
-						}
+									}
+								});
+							}
+						});
 					} else {
 						done(Error(`The package ${packageName} is already installed so if you want to test the install and uninstall package functions change the packageName variable.`));
 					}
-				});
-			} catch (e) {
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 	} else {
 		it('#Bad platform', () => {

@@ -1,13 +1,13 @@
 {
   "name": "linux-package-manager",
-  "version": "0.0.1-1",
+  "version": "0.0.2",
   "description": "Linux package managers Wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-	  "build": "tsc",
-	  "test": "tsc && sudo mocha",
-	  "prepare": "tsc && sudo mocha"
+    "build": "tsc",
+    "test": "tsc && sudo mocha",
+    "prepare": "tsc && sudo mocha"
   },
   "repository": {
     "type": "git",
@@ -25,12 +25,12 @@
   },
   "homepage": "https://github.com/nodejs-linux-server-management/linux-package-manager#readme",
   "devDependencies": {
-    "@types/node": "^12.6.2",
-    "mocha": "^6.1.4",
+    "@types/node": "^12.7.2",
+    "mocha": "^6.2.0",
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "linux-command-exists": "0.0.3",
-    "linux-shell-command": "0.0.2"
+    "linux-command-exists": "0.0.6",
+    "linux-shell-command": "0.0.6"
   }
 }

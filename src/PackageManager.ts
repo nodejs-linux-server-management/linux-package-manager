@@ -3,8 +3,6 @@ import { EventEmitter } from "events";
 import { commandExists } from "linux-command-exists";
 import { shellCommand, execute } from "linux-shell-command";
 import { ShellCommandEvents, ShellCommand } from "linux-shell-command/dist/ShellCommand";
-import { rejects } from "assert";
-import { resolve } from "url";
 
 export type packageManagerInformations = {
 	name: string;
@@ -55,9 +53,12 @@ export class PackageManager {
 		}
 	};
 
+	/**
+	 * @throws
+	 */
 	constructor() {
 		if (platform() !== 'linux') {
-			throw Error("This module only runs on linux");
+			throw new Error("This module only runs on linux");
 		}
 		this.packageManagerName = '';
 		this.error = null;
@@ -66,8 +67,8 @@ export class PackageManager {
 	}
 
 	public findPackageManager(): Promise<void>
-	public findPackageManager(callback: () => void): void;
-	public findPackageManager(callback?: () => void): Promise<void> | void {
+	public findPackageManager(callback: (error: Error | null) => void): void;
+	public findPackageManager(callback?: (error: Error | null) => void): Promise<void> | void {
 		var result: Promise<void> = new Promise((resolve, reject) => {
 			var kpms = Object.keys(PackageManager.knownPackageManagers);
 			var p = [];
@@ -108,16 +109,16 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then(() => {
-				callback();
+				callback(null);
 			}).catch((e) => {
-				throw e;
+				callback(e);
 			});
 		}
 	}
 
 	public updateDatabase(): Promise<void>;
-	public updateDatabase(callback: () => void): void;
-	public updateDatabase(callback?: () => void): Promise<void> | void {
+	public updateDatabase(callback: (error: Error | null) => void): void;
+	public updateDatabase(callback?: (error: Error | null) => void): Promise<void> | void {
 		var result: Promise<void> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -134,18 +135,20 @@ export class PackageManager {
 						}).on('error', (error) => {
 							this.events.emit('error', error);
 						});
-						update.execute((success) => {
-							if (success === true) {
+						update.execute().then((success) => {
+							if(success === true){
 								resolve();
-							} else {
+							}else{
 								reject(update.error);
 							}
+						}).catch((e) => {
+							reject(e);
 						});
 					} catch (e) {
 						reject(e);
 					}
 				} else {
-					reject(Error("Impossible to update packages database without knowing the package manager used"));
+					reject(new Error("Impossible to update packages database without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -168,16 +171,16 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then(() => {
-				callback();
+				callback(null);
 			}).catch((e) => {
-				throw e;
+				callback(e);
 			});
 		}
 	}
 
 	public listUpgradablePackages(): Promise<UpgradablePackage[]>;
-	public listUpgradablePackages(callback: (upgradablePackages: UpgradablePackage[]) => void): void
-	public listUpgradablePackages(callback?: (upgradablePackages: UpgradablePackage[]) => void): Promise<UpgradablePackage[]> | void {
+	public listUpgradablePackages(callback: (error: Error | null, upgradablePackages: UpgradablePackage[]) => void): void
+	public listUpgradablePackages(callback?: (error: Error | null, upgradablePackages: UpgradablePackage[]) => void): Promise<UpgradablePackage[]> | void {
 		var result: Promise<UpgradablePackage[]> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -200,7 +203,7 @@ export class PackageManager {
 						}
 					})
 				} else {
-					reject(Error("Impossible to list upgradable packages without knowing the package manager used"));
+					reject(new Error("Impossible to list upgradable packages without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -223,16 +226,17 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then((r) => {
-				callback(r);
+				callback(null, r);
 			}).catch((e) => {
-				throw e;
+				//@ts-ignore
+				callback(null, undefined);
 			});
 		}
 	}
 
 	public upgradePackages(): Promise<void>;
-	public upgradePackages(callback: () => void): void;
-	public upgradePackages(callback?: () => void): Promise<void> | void {
+	public upgradePackages(callback: (error: Error | null) => void): void;
+	public upgradePackages(callback?: (error: Error | null) => void): Promise<void> | void {
 		var result: Promise<void> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -250,12 +254,14 @@ export class PackageManager {
 							this.events.emit('error', error);
 						});
 						this.updateDatabase().then(() => {
-							upgrade.execute((success) => {
+							upgrade.execute().then((success) => {
 								if(success === true){
 									resolve();
 								}else{
 									reject(upgrade.error);
 								}
+							}).catch((e) => {
+								reject(e);
 							});
 						}).catch((e) => {
 							reject(e);
@@ -264,7 +270,7 @@ export class PackageManager {
 						reject(e);
 					}
 				} else {
-					reject(Error("Impossible to upgrade packages without knowing the package manager used"));
+					reject(new Error("Impossible to upgrade packages without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -287,26 +293,26 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then(() => {
-				callback();
+				callback(null);
 			}).catch((e) => {
-				throw e;
+				callback(e);
 			});
 		}
 	}
 
 	public doesPackageExists(packageName: string): Promise<boolean>;
-	public doesPackageExists(packageName: string, callback: (exists: boolean) => void): void
-	public doesPackageExists(packageName: string, callback?: (exists: boolean) => void): Promise<boolean> | void {
+	public doesPackageExists(packageName: string, callback: (error: Error | null, exists: boolean) => void): void
+	public doesPackageExists(packageName: string, callback?: (error: Error | null, exists: boolean) => void): Promise<boolean> | void {
 		var result: Promise<boolean> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
 					execute(PackageManager.knownPackageManagers[this.packageManagerName].commands.exists, [packageName]).then(({ success: success }) => {
 						resolve(success);
 					}).catch((e) => {
-						rejects(e);
-					})
+						reject(e);
+					});
 				} else {
-					reject(Error("Impossible to check if a package exists without knowing the package manager used"));
+					reject(new Error("Impossible to check if a package exists without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -329,16 +335,17 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then((r) => {
-				callback(r);
+				callback(null, r);
 			}).catch((e) => {
-				throw e;
+				//@ts-ignore
+				callback(e, undefined);
 			});
 		}
 	}
 
 	public isPackageInstalled(packageName: string): Promise<boolean>;
-	public isPackageInstalled(packageName: string, callback: (installed: boolean) => void): void;
-	public isPackageInstalled(packageName: string, callback?: (installed: boolean) => void): Promise<boolean> | void {
+	public isPackageInstalled(packageName: string, callback: (error: Error | null, installed: boolean) => void): void;
+	public isPackageInstalled(packageName: string, callback?: (error: Error | null, installed: boolean) => void): Promise<boolean> | void {
 		var result: Promise<boolean> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -348,7 +355,7 @@ export class PackageManager {
 						reject(e);
 					});
 				} else {
-					reject(Error("Impossible to check if a package is installed without knowing the package manager used"));
+					reject(new Error("Impossible to check if a package is installed without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -371,16 +378,17 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then((r) => {
-				callback(r);
+				callback(null, r);
 			}).catch((e) => {
-				throw e;
+				//@ts-ignore
+				callback(e, undefined);
 			});
 		}
 	}
 
 	public installPackage(packageName: string | string[]): Promise<void>;
-	public installPackage(packageName: string | string[], callback: () => void): void;
-	public installPackage(packageName: string | string[], callback?: () => void): Promise<void> | void {
+	public installPackage(packageName: string | string[], callback: (error: Error | null) => void): void;
+	public installPackage(packageName: string | string[], callback?: (error: Error | null) => void): Promise<void> | void {
 		var result: Promise<void> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -405,18 +413,20 @@ export class PackageManager {
 						}).on('error', (error) => {
 							this.events.emit('error', error);
 						});
-						install.execute((success) => {
-							if (success === true) {
+						install.execute().then((success) => {
+							if(success === true){
 								resolve();
-							} else {
+							}else{
 								reject(install.error);
 							}
-						})
+						}).catch((e) => {
+							reject(e);
+						});
 					}).catch((e) => {
 						reject(e);
 					});
 				} else {
-					reject(Error("Impossible to install a package without knowing the package manager used"));
+					reject(new Error("Impossible to install a package without knowing the package manager used"));
 				}
 			} else {
 				this.findPackageManager().then(() => {
@@ -439,16 +449,16 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then(() => {
-				callback();
+				callback(null);
 			}).catch((e) => {
-				throw e;
+				callback(e);
 			});
 		}
 	}
 
 	public uninstallPackage(packageName: string | string[]): Promise<void>;
-	public uninstallPackage(packageName: string | string[], callback: () => void): void;
-	public uninstallPackage(packageName: string | string[], callback?: () => void): Promise<void> | void {
+	public uninstallPackage(packageName: string | string[], callback: (error: Error | null) => void): void;
+	public uninstallPackage(packageName: string | string[], callback?: (error: Error | null) => void): Promise<void> | void {
 		var result: Promise<void> = new Promise((resolve, reject) => {
 			if (this.ok()) {
 				if (this.known()) {
@@ -472,17 +482,19 @@ export class PackageManager {
 					}).on('error', (error) => {
 						this.events.emit('error', error);
 					});
-					uninstall.execute((success)=>{
+					uninstall.execute().then((success) => {
 						if(success === true){
 							resolve();
 						}else{
 							reject(uninstall.error);
 						}
+					}).catch((e) => {
+						reject(e);
 					});
-				}else{
-					reject(Error("Impossible to uninstall a package without knowing the package manager used"));
+				} else {
+					reject(new Error("Impossible to uninstall a package without knowing the package manager used"));
 				}
-			}else{
+			} else {
 				this.findPackageManager().then(() => {
 					if (typeof callback === "undefined") {
 						this.uninstallPackage(packageName).then(() => {
@@ -503,30 +515,30 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then(() => {
-				callback();
+				callback(null);
 			}).catch((e) => {
-				throw e;
+				callback(e);
 			});
 		}
 	}
 
 	public searchPackage(packageName: string): Promise<string[]>;
-	public searchPackage(packageName: string, callback: (packages: string[]) => void): void;
-	public searchPackage(packageName: string, callback?: (packages: string[]) => void): Promise<string[]> | void {
-		var result: Promise<string[]> = new Promise((resolve, reject)=>{
-			if(this.ok()){
-				if(this.known()){
-					execute(PackageManager.knownPackageManagers[this.packageManagerName].commands.search, [packageName]).then(({shellCommand: sc, success: success})=>{
-						if(success === true){
+	public searchPackage(packageName: string, callback: (error: Error | null, packages: string[]) => void): void;
+	public searchPackage(packageName: string, callback?: (error: Error | null, packages: string[]) => void): Promise<string[]> | void {
+		var result: Promise<string[]> = new Promise((resolve, reject) => {
+			if (this.ok()) {
+				if (this.known()) {
+					execute(PackageManager.knownPackageManagers[this.packageManagerName].commands.search, [packageName]).then(({ shellCommand: sc, success: success }) => {
+						if (success === true) {
 							resolve(sc.stdout.split('\n'));
-						}else{
+						} else {
 							reject(sc.error);
 						}
 					});
-				}else{
-					reject(Error("Impossible to search for packages without knowing the package manager used"));
+				} else {
+					reject(new Error("Impossible to search for packages without knowing the package manager used"));
 				}
-			}else{
+			} else {
 				this.findPackageManager().then(() => {
 					if (typeof callback === "undefined") {
 						this.searchPackage(packageName).then((r) => {
@@ -547,9 +559,10 @@ export class PackageManager {
 			return result;
 		} else {
 			result.then((r) => {
-				callback(r);
+				callback(null, r);
 			}).catch((e) => {
-				throw e;
+				//@ts-ignore
+				callback(e, undefined);
 			});
 		}
 	}

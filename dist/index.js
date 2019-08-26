@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var PackageManager_1 = require("./PackageManager");
-var assert_1 = require("assert");
+/**
+ * @throws
+ */
 function packageManager() {
     try {
         return new PackageManager_1.PackageManager();
@@ -13,29 +15,36 @@ function packageManager() {
 exports.packageManager = packageManager;
 function packageManagerName(callback) {
     if (typeof callback === 'undefined') {
-        try {
-            var pm_1 = packageManager();
-            return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
+            try {
+                var pm_1 = packageManager();
                 pm_1.findPackageManager().then(function () {
                     resolve(pm_1.packageManagerName);
                 }).catch(function (e) {
                     reject(e);
                 });
-            });
-        }
-        catch (e) {
-            assert_1.rejects(e);
-        }
+            }
+            catch (e) {
+                reject(e);
+            }
+        });
     }
     else {
         try {
             var pm_2 = packageManager();
-            pm_2.findPackageManager(function () {
-                callback(pm_2.packageManagerName);
+            pm_2.findPackageManager(function (error) {
+                if (error) {
+                    //@ts-ignore;
+                    callback(error);
+                }
+                else {
+                    callback(error, pm_2.packageManagerName);
+                }
             });
         }
         catch (e) {
-            throw e;
+            //@ts-ignore
+            callback(e);
         }
     }
 }
@@ -54,7 +63,7 @@ function updateDatabase(callback) {
             packageManager().updateDatabase(callback);
         }
         catch (e) {
-            throw e;
+            callback(e);
         }
     }
 }
@@ -73,7 +82,8 @@ function listUpgradablePackages(callback) {
             packageManager().listUpgradablePackages(callback);
         }
         catch (e) {
-            throw e;
+            //@ts-ignore
+            callback(e);
         }
     }
 }
@@ -92,7 +102,7 @@ function upgradePackages(callback) {
             packageManager().upgradePackages(callback);
         }
         catch (e) {
-            throw e;
+            callback(e);
         }
     }
 }
@@ -111,7 +121,8 @@ function doesPackageExists(packageName, callback) {
             packageManager().doesPackageExists(packageName, callback);
         }
         catch (e) {
-            throw e;
+            //@ts-ignore
+            callback(e);
         }
     }
 }
@@ -130,7 +141,8 @@ function isPackageInstalled(packageName, callback) {
             packageManager().isPackageInstalled(packageName, callback);
         }
         catch (e) {
-            throw e;
+            //@ts-ignore
+            callback(e);
         }
     }
 }
@@ -149,7 +161,7 @@ function installPackage(packageName, callback) {
             packageManager().installPackage(packageName, callback);
         }
         catch (e) {
-            throw e;
+            callback(e);
         }
     }
 }
@@ -168,7 +180,7 @@ function uninstallPackage(packageName, callback) {
             packageManager().uninstallPackage(packageName, callback);
         }
         catch (e) {
-            throw e;
+            callback(e);
         }
     }
 }
@@ -187,7 +199,8 @@ function searchPackage(packageName, callback) {
             packageManager().searchPackage(packageName, callback);
         }
         catch (e) {
-            throw e;
+            //@ts-ignore
+            callback(e);
         }
     }
 }

@@ -119,122 +119,122 @@ describe('#PackageManager Class (Callbacks)', function () {
 			if (pm.packageManagerName !== '') {
 				done(Error('The package manager name should be empty after the object construction'));
 			}
-			try {
-				pm.findPackageManager(() => {
+			pm.findPackageManager((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					if (pm.packageManagerName !== '') {
 						done();
 					} else {
 						done(Error('The package manager name shouldn\'t be empty after the findPackageManager method'));
 					}
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#updateDatabase', (done) => {
 			var pm = new PackageManager();
-			try{
-				pm.updateDatabase(()=>{
+			pm.updateDatabase((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#listUpgradablePackages', (done) => {
 			var pm = new PackageManager();
-			try{
-				pm.listUpgradablePackages(()=>{
+			pm.listUpgradablePackages((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#upgradePackages', (done) => {
 			var pm = new PackageManager();
-			try{
-				pm.upgradePackages(()=>{
+			pm.upgradePackages((error) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
 					done();
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#doesPackageExists', (done) => {
 			var pm = new PackageManager();
-			try{
-				pm.doesPackageExists('bash', (exists)=>{
-					if(exists === true){
-						try{
-							pm.doesPackageExists('fvreidfbeyvhifevbdfhvf', (exists)=>{
-								if(exists === false){
+			pm.doesPackageExists('bash', (error, exists) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
+					if (exists === true) {
+						pm.doesPackageExists('fvreidfbeyvhifevbdfhvf', (error, exists) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
+								if (exists === false) {
 									done();
-								}else{
+								} else {
 									done(Error('The package "fvreidfbeyvhifevbdfhvf" shouldn\'t exists'));
 								}
-							});
-						}catch(e){
-							done(Error(`Shouldn't fail\n${e}`));
-						}
-					}else{
+							}
+						});
+					} else {
 						done(Error('The package "bash" should exists'));
 					}
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#isPackageInstalled', (done) => {
 			var pm = new PackageManager();
-			try{
-				pm.isPackageInstalled('bash', (installed)=>{
-					if(installed === true){
-						try{
-							pm.isPackageInstalled('fndoeugnufgodgufdgbf', (installed)=>{
-								if(installed === false){
+			pm.isPackageInstalled('bash', (error, installed) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
+					if (installed === true) {
+						pm.isPackageInstalled('fndoeugnufgodgufdgbf', (error, installed) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
+								if (installed === false) {
 									done();
-								}else{
+								} else {
 									done(Error('The package "fndoeugnufgodgufdgbf" shouldn\'t be installed'));
 								}
-							});
-						}catch(e){
-							done(Error(`Shouldn't fail\n${e}`));
-						}
-					}else{
+							}
+						});
+					} else {
 						done(Error('The package "bash" should be installed'));
 					}
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 		it('#(un)installPackage', (done) => {
 			var packageName = 'tcsh';
 			var pm = new PackageManager();
-			try{
-				pm.isPackageInstalled(packageName, (installed)=>{
-					if(installed === false){
-						try{
-							pm.installPackage(packageName, ()=>{
-								try{
-									pm.uninstallPackage(packageName, ()=>{
+			pm.isPackageInstalled(packageName, (error, installed) => {
+				if (error) {
+					done(Error(`Shouldn't fail\n${error}`));
+				} else {
+					if (installed === false) {
+						pm.installPackage(packageName, (error) => {
+							if (error) {
+								done(Error(`Shouldn't fail\n${error}`));
+							} else {
+								pm.uninstallPackage(packageName, (error) => {
+									if (error) {
+										done(Error(`Shouldn't fail\n${e}\n\nThe package ${packageName} hasn't been uninstalled, you'll have to uninstall it manually.`));
+									} else {
 										done();
-									});
-								}catch(e){
-									done(Error(`Shouldn't fail\n${e}\n\nThe package ${packageName} hasn't been uninstalled, you'll have to uninstall it manually.`));
-								}
-							});
-						}catch(e){
-							done(Error(`Shouldn't fail\n${e}`));
-						}
-					}else{
+									}
+								});
+							}
+						});
+					} else {
 						done(Error(`The package ${packageName} is already installed so if you want to test the install and uninstall package functions change the packageName variable.`));
 					}
-				});
-			}catch(e){
-				done(Error(`Shouldn't fail\n${e}`));
-			}
+				}
+			});
 		});
 	} else {
 		it('#Bad platform', () => {

@@ -4,11 +4,13 @@ var os_1 = require("os");
 var events_1 = require("events");
 var linux_command_exists_1 = require("linux-command-exists");
 var linux_shell_command_1 = require("linux-shell-command");
-var assert_1 = require("assert");
 var PackageManager = /** @class */ (function () {
+    /**
+     * @throws
+     */
     function PackageManager() {
         if (os_1.platform() !== 'linux') {
-            throw Error("This module only runs on linux");
+            throw new Error("This module only runs on linux");
         }
         this.packageManagerName = '';
         this.error = null;
@@ -60,9 +62,9 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function () {
-                callback();
+                callback(null);
             }).catch(function (e) {
-                throw e;
+                callback(e);
             });
         }
     };
@@ -84,13 +86,15 @@ var PackageManager = /** @class */ (function () {
                         }).on('error', function (error) {
                             _this.events.emit('error', error);
                         });
-                        update.execute(function (success) {
+                        update.execute().then(function (success) {
                             if (success === true) {
                                 resolve();
                             }
                             else {
                                 reject(update.error);
                             }
+                        }).catch(function (e) {
+                            reject(e);
                         });
                     }
                     catch (e) {
@@ -98,7 +102,7 @@ var PackageManager = /** @class */ (function () {
                     }
                 }
                 else {
-                    reject(Error("Impossible to update packages database without knowing the package manager used"));
+                    reject(new Error("Impossible to update packages database without knowing the package manager used"));
                 }
             }
             else {
@@ -123,9 +127,9 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function () {
-                callback();
+                callback(null);
             }).catch(function (e) {
-                throw e;
+                callback(e);
             });
         }
     };
@@ -156,7 +160,7 @@ var PackageManager = /** @class */ (function () {
                     });
                 }
                 else {
-                    reject(Error("Impossible to list upgradable packages without knowing the package manager used"));
+                    reject(new Error("Impossible to list upgradable packages without knowing the package manager used"));
                 }
             }
             else {
@@ -181,9 +185,10 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function (r) {
-                callback(r);
+                callback(null, r);
             }).catch(function (e) {
-                throw e;
+                //@ts-ignore
+                callback(null, undefined);
             });
         }
     };
@@ -206,13 +211,15 @@ var PackageManager = /** @class */ (function () {
                             _this.events.emit('error', error);
                         });
                         _this.updateDatabase().then(function () {
-                            upgrade.execute(function (success) {
+                            upgrade.execute().then(function (success) {
                                 if (success === true) {
                                     resolve();
                                 }
                                 else {
                                     reject(upgrade.error);
                                 }
+                            }).catch(function (e) {
+                                reject(e);
                             });
                         }).catch(function (e) {
                             reject(e);
@@ -223,7 +230,7 @@ var PackageManager = /** @class */ (function () {
                     }
                 }
                 else {
-                    reject(Error("Impossible to upgrade packages without knowing the package manager used"));
+                    reject(new Error("Impossible to upgrade packages without knowing the package manager used"));
                 }
             }
             else {
@@ -248,9 +255,9 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function () {
-                callback();
+                callback(null);
             }).catch(function (e) {
-                throw e;
+                callback(e);
             });
         }
     };
@@ -263,11 +270,11 @@ var PackageManager = /** @class */ (function () {
                         var success = _a.success;
                         resolve(success);
                     }).catch(function (e) {
-                        assert_1.rejects(e);
+                        reject(e);
                     });
                 }
                 else {
-                    reject(Error("Impossible to check if a package exists without knowing the package manager used"));
+                    reject(new Error("Impossible to check if a package exists without knowing the package manager used"));
                 }
             }
             else {
@@ -292,9 +299,10 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function (r) {
-                callback(r);
+                callback(null, r);
             }).catch(function (e) {
-                throw e;
+                //@ts-ignore
+                callback(e, undefined);
             });
         }
     };
@@ -311,7 +319,7 @@ var PackageManager = /** @class */ (function () {
                     });
                 }
                 else {
-                    reject(Error("Impossible to check if a package is installed without knowing the package manager used"));
+                    reject(new Error("Impossible to check if a package is installed without knowing the package manager used"));
                 }
             }
             else {
@@ -336,9 +344,10 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function (r) {
-                callback(r);
+                callback(null, r);
             }).catch(function (e) {
-                throw e;
+                //@ts-ignore
+                callback(e, undefined);
             });
         }
     };
@@ -369,20 +378,22 @@ var PackageManager = /** @class */ (function () {
                         }).on('error', function (error) {
                             _this.events.emit('error', error);
                         });
-                        install.execute(function (success) {
+                        install.execute().then(function (success) {
                             if (success === true) {
                                 resolve();
                             }
                             else {
                                 reject(install.error);
                             }
+                        }).catch(function (e) {
+                            reject(e);
                         });
                     }).catch(function (e) {
                         reject(e);
                     });
                 }
                 else {
-                    reject(Error("Impossible to install a package without knowing the package manager used"));
+                    reject(new Error("Impossible to install a package without knowing the package manager used"));
                 }
             }
             else {
@@ -407,9 +418,9 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function () {
-                callback();
+                callback(null);
             }).catch(function (e) {
-                throw e;
+                callback(e);
             });
         }
     };
@@ -439,17 +450,19 @@ var PackageManager = /** @class */ (function () {
                     }).on('error', function (error) {
                         _this.events.emit('error', error);
                     });
-                    uninstall.execute(function (success) {
+                    uninstall.execute().then(function (success) {
                         if (success === true) {
                             resolve();
                         }
                         else {
                             reject(uninstall.error);
                         }
+                    }).catch(function (e) {
+                        reject(e);
                     });
                 }
                 else {
-                    reject(Error("Impossible to uninstall a package without knowing the package manager used"));
+                    reject(new Error("Impossible to uninstall a package without knowing the package manager used"));
                 }
             }
             else {
@@ -474,9 +487,9 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function () {
-                callback();
+                callback(null);
             }).catch(function (e) {
-                throw e;
+                callback(e);
             });
         }
     };
@@ -496,7 +509,7 @@ var PackageManager = /** @class */ (function () {
                     });
                 }
                 else {
-                    reject(Error("Impossible to search for packages without knowing the package manager used"));
+                    reject(new Error("Impossible to search for packages without knowing the package manager used"));
                 }
             }
             else {
@@ -521,9 +534,10 @@ var PackageManager = /** @class */ (function () {
         }
         else {
             result.then(function (r) {
-                callback(r);
+                callback(null, r);
             }).catch(function (e) {
-                throw e;
+                //@ts-ignore
+                callback(e, undefined);
             });
         }
     };

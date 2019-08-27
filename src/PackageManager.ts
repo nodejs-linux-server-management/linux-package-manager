@@ -2,7 +2,7 @@ import { platform } from "os";
 import { EventEmitter } from "events";
 import { commandExists } from "linux-command-exists";
 import { shellCommand, execute } from "linux-shell-command";
-import { ShellCommandEvents, ShellCommand } from "linux-shell-command/dist/ShellCommand";
+import { ShellCommandEvents } from "linux-shell-command/dist/ShellCommand";
 
 export type packageManagerInformations = {
 	name: string;
